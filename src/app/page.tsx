@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { db } from '@/lib/firebase'
-import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore'
+import { collection, query, orderBy, limit, onSnapshot, doc } from 'firebase/firestore'
 
 const t = {
   fr: {
@@ -13,12 +13,11 @@ const t = {
     today: "Aujourd'hui",
     total: 'Total',
     founder_title: 'Deviens Founder',
-    founder_sub: 'Offre limitée aux 500 premiers',
-    founder_btn: '💳 Devenir Founder — 1€',
+    founder_sub: 'Offre limitée aux 2000 premiers',
+    founder_btn: '💳 Devenir Founder — 4,99€',
     founder_perks: ['✓ Badge Founder exclusif', '✓ Nom dans les crédits', '✓ Accès anticipé aux features', '✓ Rang spécial leaderboard'],
-    no_rules: 'AUCUNE RÈGLE',
-    challenges_title: 'Challenges',
-    challenges_sub: 'Définis tes plages de résistance',
+    founder_count: 'Founders',
+    founder_remaining: 'Restantes',
     taps: 'taps',
     online: 'en ligne',
     my_rank: 'Ma position',
@@ -33,18 +32,19 @@ const t = {
     today: 'Today',
     total: 'Total',
     founder_title: 'Become a Founder',
-    founder_sub: 'Limited to the first 500',
-    founder_btn: '💳 Become Founder — €1',
+    founder_sub: 'Limited to the first 2000',
+    founder_btn: '💳 Become Founder — €4.99',
     founder_perks: ['✓ Exclusive Founder badge', '✓ Name in the credits', '✓ Early access to features', '✓ Special leaderboard rank'],
-    no_rules: 'NO RULES',
-    challenges_title: 'Challenges',
-    challenges_sub: 'Set your resistance time slots',
+    founder_count: 'Founders',
+    founder_remaining: 'Remaining',
     taps: 'taps',
     online: 'online',
     my_rank: 'My rank',
     footer: '© 2026 UnlockAlert · Julien Aler',
   }
 }
+
+const FOUNDER_LIMIT = 2000
 
 type Lang = 'fr' | 'en'
 type LeaderboardEntry = {
@@ -66,11 +66,22 @@ export default function Home() {
   const [lang, setLang] = useState<Lang>('fr')
   const [tab, setTab] = useState<'today' | 'total'>('today')
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
+  const [founderCount, setFounderCount] = useState(0)
   const tx = t[lang]
 
   useEffect(() => {
     const nav = navigator.language.startsWith('fr') ? 'fr' : 'en'
     setLang(nav as Lang)
+  }, [])
+
+  // ✅ Compteur Founder Firebase temps réel
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, 'launchOffers', 'counters'), snap => {
+      if (snap.exists()) {
+        setFounderCount(snap.data().founderCount || 0)
+      }
+    })
+    return () => unsub()
   }, [])
 
   useEffect(() => {
@@ -90,6 +101,8 @@ export default function Home() {
   }, [tab])
 
   const grad = `linear-gradient(90deg, ${PURPLE}, ${ORANGE})`
+  const foundersRemaining = Math.max(0, FOUNDER_LIMIT - founderCount)
+  const progress = Math.min(founderCount / FOUNDER_LIMIT, 1)
 
   return (
     <main style={{ minHeight: '100vh', background: BG, color: 'white', fontFamily: 'system-ui, sans-serif' }}>
@@ -189,6 +202,24 @@ export default function Home() {
           <div style={{ fontSize: 56, marginBottom: 16 }}>💝</div>
           <h2 style={{ fontSize: 28, fontWeight: 900, marginBottom: 8 }}>{tx.founder_title}</h2>
           <p style={{ color: 'rgba(255,255,255,0.5)', marginBottom: 20 }}>{tx.founder_sub}</p>
+
+          {/* ✅ Compteur Firebase temps réel */}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 32, marginBottom: 16 }}>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 28, fontWeight: 900, color: PURPLE }}>{founderCount}</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>{tx.founder_count}</div>
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 28, fontWeight: 900, color: ORANGE }}>{foundersRemaining}</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>{tx.founder_remaining}</div>
+            </div>
+          </div>
+
+          {/* Barre de progression */}
+          <div style={{ width: '100%', height: 8, background: 'rgba(255,255,255,0.08)', borderRadius: 4, marginBottom: 24, overflow: 'hidden' }}>
+            <div style={{ width: `${progress * 100}%`, height: '100%', background: grad, borderRadius: 4, transition: 'width 0.5s ease' }} />
+          </div>
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 28, textAlign: 'left' }}>
             {tx.founder_perks.map(p => <div key={p} style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14 }}>{p}</div>)}
           </div>
