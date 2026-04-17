@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { db } from '@/lib/firebase'
-import { collection, query, orderBy, limit, onSnapshot, doc } from 'firebase/firestore'
+import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore'
 
 const t = {
   fr: {
@@ -13,15 +13,24 @@ const t = {
     today: "Aujourd'hui",
     total: 'Total',
     founder_title: 'Deviens Founder',
-    founder_sub: 'Offre limitée aux 2000 premiers',
+    founder_sub: 'Offre limitée aux 500 premiers',
     founder_btn: '💳 Devenir Founder — 4,99€',
     founder_perks: ['✓ Badge Founder exclusif', '✓ Nom dans les crédits', '✓ Accès anticipé aux features', '✓ Rang spécial leaderboard'],
-    founder_count: 'Founders',
-    founder_remaining: 'Restantes',
+    no_rules: 'AUCUNE RÈGLE',
+    challenges_title: 'Challenges',
+    challenges_sub: 'Définis tes plages de résistance',
     taps: 'taps',
     online: 'en ligne',
     my_rank: 'Ma position',
     footer: '© 2026 UnlockAlert · Julien Aler',
+    mascots_title: 'Choisis ton camp',
+    mascots_sub: 'Deux héros. Une seule guerre : toi contre ton téléphone.',
+    nlock_role: 'Stratège Implacable',
+    nlock_lore: 'Discipline de fer. Chaque déverrouillage est une donnée. Chaque session, une bataille à gagner. N\'LOCK ne cède jamais.',
+    nlock_stat: 'Spécialité : Contrôle & Domination',
+    nluck_role: 'Audacieux Imprévisible',
+    nluck_lore: 'Il joue avec le feu. Il défie ses propres limites chaque jour. N\'LUCK parie tout — et parfois il gagne.',
+    nluck_stat: 'Spécialité : Chaos & Instinct',
   },
   en: {
     tagline: 'Take back control of your attention',
@@ -32,19 +41,26 @@ const t = {
     today: 'Today',
     total: 'Total',
     founder_title: 'Become a Founder',
-    founder_sub: 'Limited to the first 2000',
+    founder_sub: 'Limited to the first 500',
     founder_btn: '💳 Become Founder — €4.99',
     founder_perks: ['✓ Exclusive Founder badge', '✓ Name in the credits', '✓ Early access to features', '✓ Special leaderboard rank'],
-    founder_count: 'Founders',
-    founder_remaining: 'Remaining',
+    no_rules: 'NO RULES',
+    challenges_title: 'Challenges',
+    challenges_sub: 'Set your resistance time slots',
     taps: 'taps',
     online: 'online',
     my_rank: 'My rank',
     footer: '© 2026 UnlockAlert · Julien Aler',
+    mascots_title: 'Choose your side',
+    mascots_sub: 'Two heroes. One war: you vs your phone.',
+    nlock_role: 'Relentless Strategist',
+    nlock_lore: 'Iron discipline. Every unlock is data. Every session, a battle to win. N\'LOCK never yields.',
+    nlock_stat: 'Specialty: Control & Domination',
+    nluck_role: 'Daring & Unpredictable',
+    nluck_lore: 'He plays with fire. He challenges his own limits every day. N\'LUCK bets everything — and sometimes wins.',
+    nluck_stat: 'Specialty: Chaos & Instinct',
   }
 }
-
-const FOUNDER_LIMIT = 2000
 
 type Lang = 'fr' | 'en'
 type LeaderboardEntry = {
@@ -66,22 +82,11 @@ export default function Home() {
   const [lang, setLang] = useState<Lang>('fr')
   const [tab, setTab] = useState<'today' | 'total'>('today')
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
-  const [founderCount, setFounderCount] = useState(0)
   const tx = t[lang]
 
   useEffect(() => {
     const nav = navigator.language.startsWith('fr') ? 'fr' : 'en'
     setLang(nav as Lang)
-  }, [])
-
-  // ✅ Compteur Founder Firebase temps réel
-  useEffect(() => {
-    const unsub = onSnapshot(doc(db, 'launchOffers', 'counters'), snap => {
-      if (snap.exists()) {
-        setFounderCount(snap.data().founderCount || 0)
-      }
-    })
-    return () => unsub()
   }, [])
 
   useEffect(() => {
@@ -101,8 +106,6 @@ export default function Home() {
   }, [tab])
 
   const grad = `linear-gradient(90deg, ${PURPLE}, ${ORANGE})`
-  const foundersRemaining = Math.max(0, FOUNDER_LIMIT - founderCount)
-  const progress = Math.min(founderCount / FOUNDER_LIMIT, 1)
 
   return (
     <main style={{ minHeight: '100vh', background: BG, color: 'white', fontFamily: 'system-ui, sans-serif' }}>
@@ -137,19 +140,72 @@ export default function Home() {
         </a>
       </section>
 
-      {/* HEROES */}
-      <section style={{ padding: '40px 20px', maxWidth: 800, margin: '0 auto' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-          {[
-            { emoji: '🔷', name: "N'LOCK", desc: lang === 'fr' ? 'Stratège Implacable' : 'Relentless Strategist', color: PURPLE },
-            { emoji: '🔶', name: "N'LUCK", desc: lang === 'fr' ? 'Audacieux Imprévisible' : 'Daring Unpredictable', color: ORANGE },
-          ].map(h => (
-            <div key={h.name} style={{ background: CARD, border: `1px solid ${h.color}44`, borderRadius: 20, padding: 32, textAlign: 'center' }}>
-              <div style={{ fontSize: 48, marginBottom: 12 }}>{h.emoji}</div>
-              <h3 style={{ fontSize: 24, fontWeight: 800, color: h.color, marginBottom: 8 }}>{h.name}</h3>
-              <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14 }}>{h.desc}</p>
-            </div>
-          ))}
+      {/* MASCOTS */}
+      <section style={{ padding: '60px 20px', maxWidth: 900, margin: '0 auto' }}>
+        <h2 style={{ textAlign: 'center', fontSize: 32, fontWeight: 900, marginBottom: 8 }}>{tx.mascots_title}</h2>
+        <p style={{ textAlign: 'center', color: 'rgba(255,255,255,0.4)', fontSize: 16, marginBottom: 48 }}>{tx.mascots_sub}</p>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+
+          {/* N'LOCK */}
+          <div style={{
+            background: 'linear-gradient(160deg, rgba(139,92,246,0.15) 0%, rgba(7,1,15,0) 60%)',
+            border: `1px solid ${PURPLE}55`,
+            borderRadius: 24,
+            padding: '40px 32px',
+            textAlign: 'center',
+            position: 'relative',
+            overflow: 'hidden',
+          }}>
+            <div style={{
+              position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+              background: `linear-gradient(90deg, transparent, ${PURPLE}, transparent)`,
+            }} />
+            <img
+              src="/images/nlock.png"
+              alt="N'LOCK"
+              style={{ width: 160, height: 160, objectFit: 'contain', margin: '0 auto 24px', display: 'block' }}
+            />
+            <div style={{
+              display: 'inline-block', padding: '4px 12px', borderRadius: 20,
+              background: `${PURPLE}22`, border: `1px solid ${PURPLE}44`,
+              fontSize: 11, fontWeight: 700, color: PURPLE, letterSpacing: 2,
+              textTransform: 'uppercase', marginBottom: 12,
+            }}>N'LOCK</div>
+            <h3 style={{ fontSize: 20, fontWeight: 800, color: 'white', marginBottom: 12 }}>{tx.nlock_role}</h3>
+            <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: 14, lineHeight: 1.7, marginBottom: 16 }}>{tx.nlock_lore}</p>
+            <div style={{ fontSize: 12, color: PURPLE, fontWeight: 600 }}>{tx.nlock_stat}</div>
+          </div>
+
+          {/* N'LUCK */}
+          <div style={{
+            background: 'linear-gradient(160deg, rgba(249,115,22,0.15) 0%, rgba(7,1,15,0) 60%)',
+            border: `1px solid ${ORANGE}55`,
+            borderRadius: 24,
+            padding: '40px 32px',
+            textAlign: 'center',
+            position: 'relative',
+            overflow: 'hidden',
+          }}>
+            <div style={{
+              position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+              background: `linear-gradient(90deg, transparent, ${ORANGE}, transparent)`,
+            }} />
+            <img
+              src="/images/nluck.png"
+              alt="N'LUCK"
+              style={{ width: 160, height: 160, objectFit: 'contain', margin: '0 auto 24px', display: 'block' }}
+            />
+            <div style={{
+              display: 'inline-block', padding: '4px 12px', borderRadius: 20,
+              background: `${ORANGE}22`, border: `1px solid ${ORANGE}44`,
+              fontSize: 11, fontWeight: 700, color: ORANGE, letterSpacing: 2,
+              textTransform: 'uppercase', marginBottom: 12,
+            }}>N'LUCK</div>
+            <h3 style={{ fontSize: 20, fontWeight: 800, color: 'white', marginBottom: 12 }}>{tx.nluck_role}</h3>
+            <p style={{ color: 'rgba(255,255,255,0.55)', fontSize: 14, lineHeight: 1.7, marginBottom: 16 }}>{tx.nluck_lore}</p>
+            <div style={{ fontSize: 12, color: ORANGE, fontWeight: 600 }}>{tx.nluck_stat}</div>
+          </div>
+
         </div>
       </section>
 
@@ -202,24 +258,6 @@ export default function Home() {
           <div style={{ fontSize: 56, marginBottom: 16 }}>💝</div>
           <h2 style={{ fontSize: 28, fontWeight: 900, marginBottom: 8 }}>{tx.founder_title}</h2>
           <p style={{ color: 'rgba(255,255,255,0.5)', marginBottom: 20 }}>{tx.founder_sub}</p>
-
-          {/* ✅ Compteur Firebase temps réel */}
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 32, marginBottom: 16 }}>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 28, fontWeight: 900, color: PURPLE }}>{founderCount}</div>
-              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>{tx.founder_count}</div>
-            </div>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 28, fontWeight: 900, color: ORANGE }}>{foundersRemaining}</div>
-              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>{tx.founder_remaining}</div>
-            </div>
-          </div>
-
-          {/* Barre de progression */}
-          <div style={{ width: '100%', height: 8, background: 'rgba(255,255,255,0.08)', borderRadius: 4, marginBottom: 24, overflow: 'hidden' }}>
-            <div style={{ width: `${progress * 100}%`, height: '100%', background: grad, borderRadius: 4, transition: 'width 0.5s ease' }} />
-          </div>
-
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 28, textAlign: 'left' }}>
             {tx.founder_perks.map(p => <div key={p} style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14 }}>{p}</div>)}
           </div>
